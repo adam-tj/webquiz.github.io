@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Study Quiz Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-200 font-bold text-lg">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 id="quiz-title" class="font-bold text-slate-800 text-base sm:text-lg leading-tight">Interactive Quiz Platform</h1>
+                    <p id="quiz-subtitle" class="text-xs text-slate-500 hidden sm:block">Self-Assessment Study Engine</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Import JSON Quiz Button -->
+                <button id="import-quiz-btn" class="text-xs sm:text-sm font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs">
+                    <i class="fa-solid fa-file-import text-xs"></i> Import JSON
+                </button>
+                <button id="original-order-btn" class="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-ol text-xs"></i> Original Order & Restart
+                </button>
+                <button id="reset-quiz-btn" class="text-xs sm:text-sm font-medium text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+                    <i class="fa-solid fa-shuffle text-xs"></i> Reshuffle & Restart
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-1 flex flex-col justify-center">
+
+        <!-- Toast Notification Banner for Warnings -->
+        <div id="toast-banner" class="hidden mb-4 p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-sm font-medium flex items-center justify-between shadow-xs animate-fade-in">
+            <div class="flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-exclamation text-amber-600 text-base"></i>
+                <span id="toast-text">Please complete all fields.</span>
+            </div>
+            <button id="close-toast-btn" class="text-amber-700 hover:text-amber-900 p-1">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Quiz Container Box -->
+        <div id="quiz-card" class="glass-card rounded-2xl shadow-xl shadow-slate-200/50 p-6 md:p-8 transition-all duration-300">
+            
+            <!-- Progress Tracker -->
+            <div id="progress-container" class="mb-6">
+                <div class="flex justify-between items-center text-xs font-semibold text-slate-500 mb-2">
+                    <span id="question-tracker">Question 1 of 4</span>
+                    <span id="score-tracker" class="text-indigo-600 font-bold">Score: 0 / 4</span>
+                </div>
+                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-indigo-600 h-full rounded-full transition-all duration-500 ease-out" style="width: 25%"></div>
+                </div>
+            </div>
+
+            <!-- Dynamic Question Content Display -->
+            <div id="question-area" class="min-h-[240px]">
+                <!-- Injected via JavaScript -->
+            </div>
+
+            <!-- Feedback Alert Area -->
+            <div id="feedback-message" class="hidden mt-6 p-4 rounded-xl text-sm leading-relaxed border transition-all duration-300 animate-fade-in">
+                <!-- Feedback injected here -->
+            </div>
+
+            <!-- Action Buttons Toolbar -->
+            <div class="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                <button id="prev-btn" class="hidden px-5 py-2.5 rounded-xl font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Previous
+                </button>
+
+                <div class="flex-1 flex justify-end gap-3 flex-wrap items-center">
+                    <!-- Try Again Button -->
+                    <button id="try-again-btn" class="hidden px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 transition-all active:scale-[0.98] items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> <span>Try Again</span>
+                    </button>
+
+                    <!-- Reveal Answer Button -->
+                    <button id="reveal-btn" class="hidden px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-md shadow-amber-200 transition-all active:scale-[0.98] items-center justify-center gap-2">
+                        <i class="fa-solid fa-eye text-xs"></i> <span>Reveal Correct Answer</span>
+                    </button>
+
+                    <!-- Skip Question Button -->
+                    <button id="skip-btn" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span>Skip Question</span> <i class="fa-solid fa-forward-step text-xs"></i>
+                    </button>
+
+                    <!-- Submit / Check Answer Button -->
+                    <button id="submit-btn" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span>Check Answer</span> <i class="fa-solid fa-check text-xs"></i>
+                    </button>
+
+                    <!-- Next Question Button -->
+                    <button id="next-btn" class="hidden w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <span>Next Question</span> <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Final Results Card -->
+        <div id="results-card" class="hidden glass-card rounded-2xl shadow-xl shadow-slate-200/50 p-6 md:p-8 text-center transition-all duration-300">
+            <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800">Quiz Completed!</h2>
+            <p class="text-slate-500 mt-1">Here is how you performed on this study set</p>
+
+            <div class="my-6 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row items-center justify-around gap-4">
+                <div>
+                    <span class="block text-xs font-medium text-slate-400 uppercase tracking-wider">Final Score</span>
+                    <span id="final-score" class="text-4xl font-extrabold text-indigo-600">0%</span>
+                </div>
+                <div class="h-10 w-px bg-slate-200 hidden md:block"></div>
+                <div>
+                    <span class="block text-xs font-medium text-slate-400 uppercase tracking-wider">Correct Answers</span>
+                    <span id="final-correct-count" class="text-2xl font-bold text-slate-700">0 / 0</span>
+                </div>
+            </div>
+
+            <!-- Question Review Breakdown -->
+            <div id="review-list" class="text-left space-y-4 mb-8">
+                <!-- Review Items Injected Here -->
+            </div>
+
+            <button id="retake-btn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98] inline-flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Reshuffle & Retake Quiz
+            </button>
+        </div>
+
+    </main>
+
+    <footer class="py-4 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+        Interactive Study Quiz Platform • Self-Assessment Practice
+    </footer>
+
+    <!-- JSON Import / Export Modal -->
+    <div id="json-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-file-code text-indigo-600"></i> Import Custom Quiz JSON
+                </h2>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Drag and Drop or File Picker Area -->
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 text-center bg-slate-50 transition-all cursor-pointer">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
+                <p class="text-sm font-semibold text-slate-700">Click to upload or drag & drop a .json file</p>
+                <p class="text-xs text-slate-400 mt-1">Supports JSON quiz format</p>
+                <input type="file" id="json-file-input" accept=".json,application/json" class="hidden">
+            </div>
+
+            <div class="relative flex py-1 items-center">
+                <div class="flex-grow border-t border-slate-200"></div>
+                <span class="flex-shrink mx-3 text-xs text-slate-400 uppercase font-semibold">Or Paste Raw JSON</span>
+                <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <div>
+                <textarea id="json-textarea" rows="6" placeholder="Paste your JSON string here..." class="w-full p-3 font-mono text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 text-slate-800"></textarea>
+                <p id="modal-error-msg" class="text-xs text-rose-600 font-medium mt-1.5 hidden"></p>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
+                <button id="download-template-btn" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 font-semibold">
+                    <i class="fa-solid fa-download"></i> Download JSON Template
+                </button>
+
+                <div class="flex gap-2">
+                    <button id="cancel-modal-btn" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                    <button id="load-pasted-json-btn" class="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg shadow-sm">Load Quiz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Master Quiz Data Set matching user's exact JSON format */
+        let masterQuizSuite = {
+            title: "Science & General Knowledge Practice Quiz",
+            description: "Custom 4-question study set featuring all supported interactive question types.",
+            questions: [
+                {
+                    id: "q1",
+                    type: "single_choice",
+                    question: "Which planet in our solar system has the highest average surface temperature?",
+                    options: [
+                        "Mercury",
+                        "Venus",
+                        "Mars",
+                        "Jupiter"
+                    ],
+                    correct: [1],
+                    explanation: "Venus is the hottest planet in our solar system because its dense carbon dioxide atmosphere traps heat in a runaway greenhouse effect."
+                },
+                {
+                    id: "q2",
+                    type: "multiple_choice",
+                    question: "Select all primary colors in the standard additive (RGB) light model.",
+                    options: [
+                        "Red",
+                        "Yellow",
+                        "Green",
+                        "Blue"
+                    ],
+                    correct: [0, 2, 3],
+                    explanation: "The additive RGB model uses Red, Green, and Blue as primary light colors. Yellow is a primary color in subtractive pigment models, not RGB."
+                },
+                {
+                    id: "q3",
+                    type: "cloze_dropdown",
+                    question: "Fill in the missing terms using the drop-down menus below to complete the sentence.",
+                    template: "Water turns into ice through freezing, transitioning from a {blank1} to a {blank2}.",
+                    blanks: {
+                        blank1: {
+                            options: ["solid", "liquid", "gas"],
+                            correct: "liquid"
+                        },
+                        blank2: {
+                            options: ["solid", "liquid", "gas"],
+                            correct: "solid"
+                        }
+                    },
+                    explanation: "Freezing is the phase change where matter transitions from a liquid state to a solid state when cooled below its freezing point."
+                },
+                {
+                    id: "q4",
+                    type: "ordering_with_distractors",
+                    question: "Sort these celestial bodies in order of increasing distance from the Sun into the 4 target slots (excluding non-planets).",
+                    available_pool: [
+                        "Venus",
+                        "Earth",
+                        "Mars",
+                        "Jupiter",
+                        "Moon",
+                        "Pluto"
+                    ],
+                    target_slots: 4,
+                    correct_order: [
+                        "Venus",
+                        "Earth",
+                        "Mars",
+                        "Jupiter"
+                    ],
+                    distractors: [
+                        "Moon",
+                        "Pluto"
+                    ],
+                    explanation: "In order from closest to farthest from the Sun: Venus -> Earth -> Mars -> Jupiter. The Moon is a satellite and Pluto is classified as a dwarf planet."
+                }
+            ]
+        };
+
+        /* Function Declarations */
+        function normalizeQuizQuestions(rawQuestions) {
+            if (!Array.isArray(rawQuestions)) return [];
+            return rawQuestions.filter(q => q && q.type && q.question).map((q, idx) => {
+                const id = q.id || `q_${idx + 1}`;
+                const type = q.type;
+                const question = q.question;
+                const explanation = q.explanation || "No detailed explanation provided.";
+
+                if (type === "single_choice" || type === "multiple_choice") {
+                    return {
+                        id: id,
+                        type: type,
+                        question: question,
+                        explanation: explanation,
+                        options: q.options || [],
+                        correct: q.correct || []
+                    };
+                } else if (type === "cloze_dropdown") {
+                    return {
+                        id: id,
+                        type: type,
+                        question: question,
+                        explanation: explanation,
+                        template: q.template || "",
+                        blanks: q.blanks || {}
+                    };
+                } else if (type === "ordering_with_distractors" || type === "ordering") {
+                    const availablePool = q.available_pool || q.pool || [];
+                    const correctOrder = q.correct_order || q.correctOrder || [];
+                    const targetSlots = q.target_slots || q.targetSlots || correctOrder.length;
+                    const distractors = q.distractors || availablePool.filter(item => !correctOrder.includes(item));
+
+                    return {
+                        id: id,
+                        type: "ordering_with_distractors",
+                        question: question,
+                        explanation: explanation,
+                        pool: availablePool,
+                        targetSlots: targetSlots,
+                        correctOrder: correctOrder,
+                        distractors: distractors
+                    };
+                }
+                return null;
+            }).filter(Boolean);
+        }
+
+        /* State Variables */
+        let activeQuizData = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = {};
+        let questionSubmitted = {};
+        let answerRevealed = {};
+
+        /* DOM Elements */
+        const quizTitleEl = document.getElementById("quiz-title");
+        const quizSubtitleEl = document.getElementById("quiz-subtitle");
+        const questionArea = document.getElementById("question-area");
+        const progressTracker = document.getElementById("question-tracker");
+        const scoreTracker = document.getElementById("score-tracker");
+        const progressBar = document.getElementById("progress-bar");
+        const submitBtn = document.getElementById("submit-btn");
+        const tryAgainBtn = document.getElementById("try-again-btn");
+        const revealBtn = document.getElementById("reveal-btn");
+        const skipBtn = document.getElementById("skip-btn");
+        const nextBtn = document.getElementById("next-btn");
+        const prevBtn = document.getElementById("prev-btn");
+        const feedbackMessage = document.getElementById("feedback-message");
+        const quizCard = document.getElementById("quiz-card");
+        const resultsCard = document.getElementById("results-card");
+        const originalOrderBtn = document.getElementById("original-order-btn");
+        const resetQuizBtn = document.getElementById("reset-quiz-btn");
+        const retakeBtn = document.getElementById("retake-btn");
+        const toastBanner = document.getElementById("toast-banner");
+        const toastText = document.getElementById("toast-text");
+        const closeToastBtn = document.getElementById("close-toast-btn");
+
+        /* Modal DOM Elements */
+        const importQuizBtn = document.getElementById("import-quiz-btn");
+        const jsonModal = document.getElementById("json-modal");
+        const closeModalBtn = document.getElementById("close-modal-btn");
+        const cancelModalBtn = document.getElementById("cancel-modal-btn");
+        const dropZone = document.getElementById("drop-zone");
+        const jsonFileInput = document.getElementById("json-file-input");
+        const jsonTextarea = document.getElementById("json-textarea");
+        const loadPastedJsonBtn = document.getElementById("load-pasted-json-btn");
+        const downloadTemplateBtn = document.getElementById("download-template-btn");
+        const modalErrorMsg = document.getElementById("modal-error-msg");
+
+        /* Toast Handler */
+        function showToast(msg) {
+            toastText.innerText = msg;
+            toastBanner.classList.remove("hidden");
+        }
+        function hideToast() {
+            toastBanner.classList.add("hidden");
+        }
+        closeToastBtn.onclick = hideToast;
+
+        importQuizBtn.onclick = function() {
+            modalErrorMsg.classList.add("hidden");
+            jsonTextarea.value = "";
+            jsonModal.classList.remove("hidden");
+        };
+
+        function hideModal() {
+            jsonModal.classList.add("hidden");
+        }
+        closeModalBtn.onclick = hideModal;
+        cancelModalBtn.onclick = hideModal;
+
+        dropZone.onclick = function() { jsonFileInput.click(); };
+
+        dropZone.ondragover = function(e) {
+            e.preventDefault();
+            dropZone.classList.add("border-indigo-500", "bg-indigo-50");
+        };
+
+        dropZone.ondragleave = function() {
+            dropZone.classList.remove("border-indigo-500", "bg-indigo-50");
+        };
+
+        dropZone.ondrop = function(e) {
+            e.preventDefault();
+            dropZone.classList.remove("border-indigo-500", "bg-indigo-50");
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
+            }
+        };
+
+        jsonFileInput.onchange = function(e) {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        };
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    applyNewQuizData(parsed);
+                } catch (err) {
+                    showModalError("Invalid JSON file format: " + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        loadPastedJsonBtn.onclick = function() {
+            const val = jsonTextarea.value.trim();
+            if (!val) {
+                showModalError("Please paste valid JSON or select a file.");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(val);
+                applyNewQuizData(parsed);
+            } catch (err) {
+                showModalError("JSON Syntax Error: " + err.message);
+            }
+        };
+
+        function showModalError(msg) {
+            modalErrorMsg.innerText = msg;
+            modalErrorMsg.classList.remove("hidden");
+        }
+
+        function applyNewQuizData(raw) {
+            let questionsArray = Array.isArray(raw) ? raw : (raw.questions || []);
+
+            if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
+                showModalError("JSON must contain an array of questions or a 'questions' property.");
+                return;
+            }
+
+            const normalizedQuestions = normalizeQuizQuestions(questionsArray);
+            if (normalizedQuestions.length === 0) {
+                showModalError("No valid supported questions found in JSON.");
+                return;
+            }
+
+            masterQuizSuite = {
+                title: raw.title || "Custom Imported Quiz",
+                description: raw.description || "Interactive assessment set",
+                questions: normalizedQuestions
+            };
+
+            hideModal();
+            restartQuiz(true);
+        }
+
+        /* Download JSON Template Matching User Schema */
+        downloadTemplateBtn.onclick = function() {
+            const templateData = masterQuizSuite;
+            const jsonStr = JSON.stringify(templateData, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "quiz_template.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function calculateCurrentScore() {
+            let score = 0;
+            activeQuizData.forEach((q, idx) => {
+                if (questionSubmitted[idx] && checkAnswerCorrectness(q, userAnswers[idx])) {
+                    score++;
+                }
+            });
+            return score;
+        }
+
+        function restartQuiz(doShuffle) {
+            if (doShuffle === undefined) doShuffle = true;
+            
+            quizTitleEl.innerText = masterQuizSuite.title || "Interactive Self-Test Suite";
+            quizSubtitleEl.innerText = masterQuizSuite.description || "Practice & Assessment Engine";
+
+            activeQuizData = prepareActiveQuizData(masterQuizSuite.questions, doShuffle);
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            questionSubmitted = {};
+            answerRevealed = {};
+
+            resultsCard.classList.add("hidden");
+            quizCard.classList.remove("hidden");
+            hideToast();
+            renderQuestion();
+        }
+
+        /* Prepare active quiz data (with optional question & option shuffling) */
+        function prepareActiveQuizData(questions, doShuffle) {
+            const list = doShuffle ? shuffleArray(questions) : questions;
+            return list.map(q => {
+                const qCopy = JSON.parse(JSON.stringify(q));
+
+                if (qCopy.type === "single_choice" || qCopy.type === "multiple_choice") {
+                    if (Array.isArray(qCopy.options) && Array.isArray(qCopy.correct)) {
+                        if (doShuffle) {
+                            const indexedOptions = qCopy.options.map((opt, idx) => ({
+                                text: opt,
+                                isCorrect: qCopy.correct.includes(idx)
+                            }));
+                            const shuffledOpts = shuffleArray(indexedOptions);
+                            qCopy.options = shuffledOpts.map(o => o.text);
+                            qCopy.correct = [];
+                            shuffledOpts.forEach((o, newIdx) => {
+                                if (o.isCorrect) {
+                                    qCopy.correct.push(newIdx);
+                                }
+                            });
+                        }
+                    }
+                } else if (qCopy.type === "cloze_dropdown" && qCopy.blanks) {
+                    if (doShuffle) {
+                        Object.keys(qCopy.blanks).forEach(key => {
+                            if (qCopy.blanks[key] && Array.isArray(qCopy.blanks[key].options)) {
+                                qCopy.blanks[key].options = shuffleArray(qCopy.blanks[key].options);
+                            }
+                        });
+                    }
+                }
+                return qCopy;
+            });
+        }
+
+        function renderQuestion() {
+            hideToast();
+            const q = activeQuizData[currentQuestionIndex];
+            const isSubmitted = questionSubmitted[currentQuestionIndex];
+            const isCorrect = isSubmitted ? checkAnswerCorrectness(q, userAnswers[currentQuestionIndex]) : false;
+
+            progressTracker.innerText = `Question ${currentQuestionIndex + 1} of ${activeQuizData.length}`;
+            scoreTracker.innerText = `Score: ${calculateCurrentScore()} / ${activeQuizData.length}`;
+            progressBar.style.width = `${((currentQuestionIndex + 1) / activeQuizData.length) * 100}%`;
+
+            questionArea.innerHTML = "";
+            feedbackMessage.classList.add("hidden");
+
+            if (currentQuestionIndex > 0) {
+                prevBtn.classList.remove("hidden");
+            } else {
+                prevBtn.classList.add("hidden");
+            }
+
+            const qTitle = document.createElement("div");
+            qTitle.className = "mb-6";
+            qTitle.innerHTML = `
+                <span class="inline-block px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-2 uppercase tracking-wider">
+                    ${getQuestionTypeLabel(q.type)}
+                </span>
+                <h3 class="text-xl font-bold text-slate-800">${q.question}</h3>
+            `;
+            questionArea.appendChild(qTitle);
+
+            if (q.type === "single_choice") {
+                renderSingleChoice(q, isSubmitted);
+            } else if (q.type === "multiple_choice") {
+                renderMultipleChoice(q, isSubmitted);
+            } else if (q.type === "cloze_dropdown") {
+                renderClozeDropdown(q, isSubmitted);
+            } else if (q.type === "ordering_with_distractors" || q.type === "ordering") {
+                renderOrdering(q, isSubmitted);
+            }
+
+            if (isSubmitted) {
+                submitBtn.classList.add("hidden");
+                skipBtn.classList.add("hidden");
+                skipBtn.classList.remove("flex");
+                nextBtn.classList.remove("hidden");
+
+                if (isCorrect) {
+                    tryAgainBtn.classList.add("hidden");
+                    tryAgainBtn.classList.remove("flex");
+                    revealBtn.classList.add("hidden");
+                    revealBtn.classList.remove("flex");
+                } else {
+                    tryAgainBtn.classList.remove("hidden");
+                    tryAgainBtn.classList.add("flex");
+
+                    if (!answerRevealed[currentQuestionIndex]) {
+                        revealBtn.classList.remove("hidden");
+                        revealBtn.classList.add("flex");
+                    } else {
+                        revealBtn.classList.add("hidden");
+                        revealBtn.classList.remove("flex");
+                    }
+                }
+
+                showFeedback(currentQuestionIndex);
+            } else {
+                submitBtn.classList.remove("hidden");
+                skipBtn.classList.remove("hidden");
+                skipBtn.classList.add("flex");
+                tryAgainBtn.classList.add("hidden");
+                tryAgainBtn.classList.remove("flex");
+                revealBtn.classList.add("hidden");
+                revealBtn.classList.remove("flex");
+                nextBtn.classList.add("hidden");
+            }
+        }
+
+        function getQuestionTypeLabel(type) {
+            switch (type) {
+                case "single_choice": return "Single Choice";
+                case "multiple_choice": return "Multiple Choice";
+                case "cloze_dropdown": return "Fill-in-the-Blank";
+                case "ordering_with_distractors": return "Ordering & Sorting";
+                default: return "Question";
+            }
+        }
+
+        function renderSingleChoice(q, isSubmitted) {
+            const container = document.createElement("div");
+            container.className = "space-y-3";
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                const isSelected = userAnswers[currentQuestionIndex] === idx;
+
+                btn.className = `w-full text-left p-4 rounded-xl border font-medium transition-all flex items-center justify-between ${
+                    isSelected 
+                        ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-sm' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                }`;
+
+                if (isSubmitted) {
+                    btn.disabled = true;
+                    btn.classList.add("cursor-not-allowed", "opacity-80");
+                } else {
+                    btn.onclick = function() {
+                        userAnswers[currentQuestionIndex] = idx;
+                        renderQuestion();
+                    };
+                }
+
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'
+                    }">
+                        ${isSelected ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+
+            questionArea.appendChild(container);
+        }
+
+        function renderMultipleChoice(q, isSubmitted) {
+            const container = document.createElement("div");
+            container.className = "space-y-3";
+            const currentSelected = userAnswers[currentQuestionIndex] || [];
+
+            q.options.forEach((opt, idx) => {
+                const isSelected = currentSelected.includes(idx);
+                const btn = document.createElement("button");
+
+                btn.className = `w-full text-left p-4 rounded-xl border font-medium transition-all flex items-center justify-between ${
+                    isSelected 
+                        ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 shadow-sm' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                }`;
+
+                if (isSubmitted) {
+                    btn.disabled = true;
+                    btn.classList.add("cursor-not-allowed", "opacity-80");
+                } else {
+                    btn.onclick = function() {
+                        let updated = [...currentSelected];
+                        if (isSelected) {
+                            updated = updated.filter(i => i !== idx);
+                        } else {
+                            updated.push(idx);
+                        }
+                        userAnswers[currentQuestionIndex] = updated;
+                        renderQuestion();
+                    };
+                }
+
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                        isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300'
+                    }">
+                        ${isSelected ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+
+            questionArea.appendChild(container);
+        }
+
+        function renderClozeDropdown(q, isSubmitted) {
+            const container = document.createElement("div");
+            container.className = "p-6 bg-slate-50 rounded-xl border border-slate-200 text-lg leading-loose text-slate-800";
+
+            let userSelections = userAnswers[currentQuestionIndex] || {};
+            let templateHTML = q.template;
+
+            Object.keys(q.blanks).forEach(key => {
+                const blankData = q.blanks[key];
+                const selectedVal = userSelections[key] || "";
+
+                let optionsHTML = `<option value="" disabled ${selectedVal === "" ? "selected" : ""}>Select...</option>`;
+                blankData.options.forEach(opt => {
+                    optionsHTML += `<option value="${opt}" ${selectedVal === opt ? "selected" : ""}>${opt}</option>`;
+                });
+
+                const selectHTML = `
+                    <select data-blank="${key}" ${isSubmitted ? 'disabled' : ''} class="inline-block mx-1.5 px-3 py-1.5 bg-white border border-indigo-300 text-indigo-900 font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base ${isSubmitted ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'}">
+                        ${optionsHTML}
+                    </select>
+                `;
+
+                templateHTML = templateHTML.replace(`{${key}}`, selectHTML);
+            });
+
+            container.innerHTML = templateHTML;
+            questionArea.appendChild(container);
+
+            if (!isSubmitted) {
+                container.querySelectorAll("select").forEach(sel => {
+                    sel.onchange = function(e) {
+                        const blankKey = e.target.getAttribute("data-blank");
+                        if (!userAnswers[currentQuestionIndex]) {
+                            userAnswers[currentQuestionIndex] = {};
+                        }
+                        userAnswers[currentQuestionIndex][blankKey] = e.target.value;
+                    };
+                });
+            }
+        }
+
+        function renderOrdering(q, isSubmitted) {
+            const poolItems = q.pool || q.available_pool || [];
+            const targetSlotCount = q.targetSlots || q.target_slots || (q.correctOrder || q.correct_order || []).length;
+
+            if (!userAnswers[currentQuestionIndex]) {
+                userAnswers[currentQuestionIndex] = {
+                    pool: shuffleArray(poolItems),
+                    slots: Array(targetSlotCount).fill(null)
+                };
+            }
+
+            const state = userAnswers[currentQuestionIndex];
+            const container = document.createElement("div");
+            container.className = "space-y-6";
+
+            const slotsBox = document.createElement("div");
+            slotsBox.className = "space-y-2";
+            slotsBox.innerHTML = `<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Target Order (${targetSlotCount} Slots)</p>`;
+
+            const slotsList = document.createElement("div");
+            slotsList.className = "grid grid-cols-1 sm:grid-cols-2 gap-3";
+
+            state.slots.forEach((item, idx) => {
+                const slotEl = document.createElement("div");
+                slotEl.className = `p-3 rounded-xl border-2 border-dashed flex items-center justify-between min-h-[52px] transition-all ${
+                    item ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200 bg-slate-50'
+                }`;
+
+                slotEl.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center">${idx + 1}</span>
+                        <span class="font-medium text-slate-800 text-sm">${item || '<span class="text-slate-400 italic font-normal">Tap item below to place</span>'}</span>
+                    </div>
+                    ${item && !isSubmitted ? `<button class="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2 py-1 bg-white rounded border border-rose-200 shadow-xs" data-slot-idx="${idx}">Remove</button>` : ''}
+                `;
+
+                if (item && !isSubmitted) {
+                    slotEl.querySelector("button").onclick = function() {
+                        state.pool.push(item);
+                        state.slots[idx] = null;
+                        renderQuestion();
+                    };
+                }
+
+                slotsList.appendChild(slotEl);
+            });
+            slotsBox.appendChild(slotsList);
+
+            const poolBox = document.createElement("div");
+            poolBox.className = "p-4 bg-slate-100 rounded-xl border border-slate-200";
+            poolBox.innerHTML = `<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Available Pool</p>`;
+
+            const poolChips = document.createElement("div");
+            poolChips.className = "flex flex-wrap gap-2";
+
+            if (state.pool.length === 0) {
+                poolChips.innerHTML = `<span class="text-xs text-slate-400 italic">All pool items placed!</span>`;
+            } else {
+                state.pool.forEach((item, idx) => {
+                    const chip = document.createElement("button");
+                    chip.className = `px-3.5 py-2 rounded-lg bg-white border border-slate-200 shadow-xs text-sm font-medium text-slate-700 transition-all ${
+                        isSubmitted ? 'cursor-not-allowed opacity-75' : 'hover:border-indigo-500 hover:text-indigo-600 active:scale-95 cursor-pointer'
+                    }`;
+                    chip.innerText = item;
+
+                    if (!isSubmitted) {
+                        chip.onclick = function() {
+                            const firstEmptySlot = state.slots.findIndex(s => s === null);
+                            if (firstEmptySlot !== -1) {
+                                state.slots[firstEmptySlot] = item;
+                                state.pool.splice(idx, 1);
+                                renderQuestion();
+                            }
+                        };
+                    }
+                    poolChips.appendChild(chip);
+                });
+            }
+            poolBox.appendChild(poolChips);
+
+            container.appendChild(slotsBox);
+            container.appendChild(poolBox);
+            questionArea.appendChild(container);
+        }
+
+        function checkAnswerCorrectness(q, answer) {
+            if (answer === undefined || answer === null) return false;
+
+            if (q.type === "single_choice") {
+                return Array.isArray(q.correct) && q.correct.includes(answer);
+            } else if (q.type === "multiple_choice") {
+                if (!Array.isArray(answer)) return false;
+                const sortedUser = [...answer].sort();
+                const sortedCorrect = [...q.correct].sort();
+                return JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+            } else if (q.type === "cloze_dropdown") {
+                if (typeof answer !== 'object') return false;
+                const keys = Object.keys(q.blanks);
+                return keys.every(k => answer[k] !== undefined && answer[k] === q.blanks[k].correct);
+            } else if (q.type === "ordering_with_distractors" || q.type === "ordering") {
+                if (!answer || !Array.isArray(answer.slots)) return false;
+                const correctOrder = q.correctOrder || q.correct_order || [];
+                return JSON.stringify(answer.slots) === JSON.stringify(correctOrder);
+            }
+            return false;
+        }
+
+        function getCorrectAnswerDisplay(q) {
+            if (q.type === "single_choice") {
+                return q.options[q.correct[0]];
+            } else if (q.type === "multiple_choice") {
+                return q.correct.map(idx => q.options[idx]).join(", ");
+            } else if (q.type === "cloze_dropdown") {
+                return Object.keys(q.blanks).map(k => `${k}: ${q.blanks[k].correct}`).join(" | ");
+            } else if (q.type === "ordering_with_distractors" || q.type === "ordering") {
+                const correctOrder = q.correctOrder || q.correct_order || [];
+                return correctOrder.map((item, idx) => `${idx + 1}. ${item}`).join(" → ");
+            }
+            return "";
+        }
+
+        function showFeedback(index) {
+            const q = activeQuizData[index];
+            const answer = userAnswers[index];
+            const isCorrect = checkAnswerCorrectness(q, answer);
+            const isRevealed = answerRevealed[index];
+
+            feedbackMessage.classList.remove("hidden", "bg-emerald-50", "border-emerald-200", "text-emerald-900", "bg-rose-50", "border-rose-200", "text-rose-900");
+
+            if (isCorrect) {
+                feedbackMessage.classList.add("bg-emerald-50", "border-emerald-200", "text-emerald-900");
+                feedbackMessage.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Correct!</p>
+                            <p class="mt-1">${q.explanation}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                feedbackMessage.classList.add("bg-rose-50", "border-rose-200", "text-rose-900");
+
+                if (isRevealed) {
+                    feedbackMessage.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-eye text-amber-600 text-lg mt-0.5"></i>
+                            <div>
+                                <p class="font-bold text-rose-800">Incorrect</p>
+                                <p class="mt-1 text-sm font-semibold text-slate-800">Correct Solution: <span class="text-indigo-700">${getCorrectAnswerDisplay(q)}</span></p>
+                                <p class="mt-1.5 text-xs text-slate-600">${q.explanation}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    feedbackMessage.innerHTML = `
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-circle-xmark text-rose-600 text-lg mt-0.5"></i>
+                            <div>
+                                <p class="font-bold">Incorrect</p>
+                                <p class="mt-0.5 text-slate-600">Your answer was not correct. Click <strong>"Try Again"</strong> to re-attempt this question, or <strong>"Reveal Correct Answer"</strong> to see the solution.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        submitBtn.onclick = function() {
+            const q = activeQuizData[currentQuestionIndex];
+            const answer = userAnswers[currentQuestionIndex];
+
+            if (answer === undefined || answer === null || (Array.isArray(answer) && answer.length === 0)) {
+                showToast("Please make a selection before checking your answer!");
+                return;
+            }
+
+            if (q.type === "cloze_dropdown") {
+                const blankKeys = Object.keys(q.blanks);
+                const hasAll = blankKeys.every(k => answer[k] && answer[k].trim() !== "");
+                if (!hasAll) {
+                    showToast("Please select an option for all drop-down fields!");
+                    return;
+                }
+            }
+
+            if (q.type === "ordering_with_distractors" || q.type === "ordering") {
+                const targetSlotCount = q.targetSlots || q.target_slots || (q.correctOrder || q.correct_order || []).length;
+                const filledSlots = answer && answer.slots ? answer.slots.filter(s => s !== null).length : 0;
+                if (filledSlots < targetSlotCount) {
+                    showToast(`Please place items into all ${targetSlotCount} target slots!`);
+                    return;
+                }
+            }
+
+            questionSubmitted[currentQuestionIndex] = true;
+            renderQuestion();
+        };
+
+        skipBtn.onclick = function() {
+            if (currentQuestionIndex < activeQuizData.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            } else {
+                const firstUnsubmitted = activeQuizData.findIndex((_, idx) => !questionSubmitted[idx]);
+                if (firstUnsubmitted !== -1 && firstUnsubmitted !== currentQuestionIndex) {
+                    currentQuestionIndex = firstUnsubmitted;
+                    showToast("Skipped to your first unattempted question.");
+                    renderQuestion();
+                } else {
+                    showResults();
+                }
+            }
+        };
+
+        tryAgainBtn.onclick = function() {
+            questionSubmitted[currentQuestionIndex] = false;
+            answerRevealed[currentQuestionIndex] = false;
+            delete userAnswers[currentQuestionIndex];
+            renderQuestion();
+        };
+
+        revealBtn.onclick = function() {
+            answerRevealed[currentQuestionIndex] = true;
+            revealBtn.classList.add("hidden");
+            showFeedback(currentQuestionIndex);
+        };
+
+        nextBtn.onclick = function() {
+            if (currentQuestionIndex < activeQuizData.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        };
+
+        prevBtn.onclick = function() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+            }
+        };
+
+        function showResults() {
+            quizCard.classList.add("hidden");
+            resultsCard.classList.remove("hidden");
+            hideToast();
+
+            const finalScore = calculateCurrentScore();
+            const percent = Math.round((finalScore / activeQuizData.length) * 100);
+            document.getElementById("final-score").innerText = `${percent}%`;
+            document.getElementById("final-correct-count").innerText = `${finalScore} / ${activeQuizData.length}`;
+
+            const reviewList = document.getElementById("review-list");
+            reviewList.innerHTML = "";
+
+            activeQuizData.forEach((q, idx) => {
+                const answer = userAnswers[idx];
+                const isSubmitted = questionSubmitted[idx];
+                let isCorrect = isSubmitted && checkAnswerCorrectness(q, answer);
+
+                const item = document.createElement("div");
+                let badgeHTML = "";
+                let iconHTML = "";
+                let itemBg = "";
+
+                if (isCorrect) {
+                    itemBg = "bg-emerald-50/50 border-emerald-200";
+                    badgeHTML = `<span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Question ${idx + 1} • Correct</span>`;
+                    iconHTML = `<i class="fa-solid fa-check text-emerald-600"></i>`;
+                } else if (isSubmitted) {
+                    itemBg = "bg-rose-50/50 border-rose-200";
+                    badgeHTML = `<span class="text-xs font-bold uppercase tracking-wider text-rose-700">Question ${idx + 1} • Incorrect</span>`;
+                    iconHTML = `<i class="fa-solid fa-xmark text-rose-600"></i>`;
+                } else {
+                    itemBg = "bg-amber-50/50 border-amber-200";
+                    badgeHTML = `<span class="text-xs font-bold uppercase tracking-wider text-amber-700">Question ${idx + 1} • Skipped</span>`;
+                    iconHTML = `<i class="fa-solid fa-forward-step text-amber-600"></i>`;
+                }
+
+                item.className = `p-4 rounded-xl border ${itemBg}`;
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        ${badgeHTML}
+                        ${iconHTML}
+                    </div>
+                    <p class="font-semibold text-slate-800 text-sm mb-2">${q.question}</p>
+                    <p class="text-xs text-slate-600">${q.explanation}</p>
+                `;
+                reviewList.appendChild(item);
+            });
+        }
+
+        originalOrderBtn.onclick = function() { restartQuiz(false); };
+        resetQuizBtn.onclick = function() { restartQuiz(true); };
+        retakeBtn.onclick = function() { restartQuiz(true); };
+
+        /* Initialize Quiz On Page Load */
+        window.onload = function() {
+            if (masterQuizSuite && masterQuizSuite.questions) {
+                masterQuizSuite.questions = normalizeQuizQuestions(masterQuizSuite.questions);
+            }
+            restartQuiz(true);
+        };
+    </script>
+</body>
+</html>
